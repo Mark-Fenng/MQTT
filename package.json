@@ -4,7 +4,6 @@
   "description": "",
   "main": "./src/index.ts",
   "scripts": {
-    "publisher": "ts-node ./src/publisher.ts",
     "controller": "ts-node ./src/controller.ts",
     "analyzer": "ts-node ./src/analyzer.ts"
   },
