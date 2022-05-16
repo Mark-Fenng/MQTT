@@ -1,7 +1,7 @@
 import * as mqtt from "async-mqtt";
 import * as fs from "fs";
 import * as path from "path";
-import { QoS, QOS_TOPIC, DELAY_TOPIC } from "./type";
+import { QoS, QOS_TOPIC, DELAY_TOPIC, BROKER_SYS_TOPIC } from "./type";
 
 // const BROKER_URL = "mqtt://test.mosquitto.org";
 const BROKER_URL = "mqtt://127.0.0.1";
@@ -11,13 +11,14 @@ async function main() {
     const client = await mqtt.connectAsync(BROKER_URL);
     console.log(`Connected to ${BROKER_URL}.`);
     const analyzer = new Analyzer(client, 2);
-    for (const qos of [QoS.AT_LEAST_ONCE, QoS.AT_MOST_ONCE, QoS.EXACTLY_ONCE]) {
+    for (const qos of [QoS.AT_MOST_ONCE, QoS.AT_LEAST_ONCE, QoS.EXACTLY_ONCE]) {
       for (const delay of [0, 1, 2, 10, 20, 100, 200]) {
         console.log(`Start to analyze with QoS: ${qos} and delay: ${delay}.`);
         const result = await analyzer.analyze(qos, delay);
         console.log(result);
       }
     }
+    await client.end();
   } catch (e) {
     console.log(e);
     process.exit();
@@ -38,6 +39,7 @@ class Analyzer {
   private client: mqtt.AsyncMqttClient;
   // an array of tuples. The tuple[0] indicates the received number and tuple[1] indicates the timestamp when the number received.
   private record: [number, number][] = [];
+  private systemLog: string = "";
   private startTime: number | null = null;
   private qos: QoS = QoS.AT_LEAST_ONCE;
   private delay: number = 1000;
@@ -63,17 +65,22 @@ class Analyzer {
             this.startTime = null;
             this.client.off("message", onMessageHandler);
             this.client.unsubscribe(TargetTopic);
+            this.client.unsubscribe(BROKER_SYS_TOPIC);
             const result = this.getStatistics();
             this.saveRecordData();
             this.record = [];
+            this.systemLog = "";
             resolve(result);
           }
+        } else {
+          if (this.startTime !== null) this.systemLog += `${Date.now() - this.startTime} ${topic} ${message.toString()}\n`;
         }
       };
       await this.client.on("message", onMessageHandler);
       await this.client.subscribe(TargetTopic, {
         qos,
       });
+      await this.client.subscribe(BROKER_SYS_TOPIC, { qos });
       await Promise.all([this.client.publish(QOS_TOPIC, qos.toString(), { qos }), this.client.publish(DELAY_TOPIC, delay.toString(), { qos })]);
     });
   }
@@ -82,6 +89,7 @@ class Analyzer {
     const targetDir = path.resolve(__dirname, `../record`);
     if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir);
     fs.writeFileSync(`${targetDir}/${this.qos}-${this.delay}`, this.record.map((r) => r.join(" ")).join("\n"));
+    fs.writeFileSync(`${targetDir}/${this.qos}-${this.delay}-system-log`, this.systemLog);
   }
 
   private getStatistics(): AnalysisResult {

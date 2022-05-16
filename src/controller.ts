@@ -64,6 +64,7 @@ class Controller {
 class Publisher {
   private client: mqtt.AsyncMqttClient;
   private setIntervalHandler: NodeJS.Timer | null = null;
+  private stop0ms = false;
   constructor(client: mqtt.AsyncMqttClient) {
     this.client = client;
   }
@@ -73,18 +74,30 @@ class Publisher {
 
     let counter = 0;
     console.log(`Start to publish counter with QoS: ${qos} and delay: ${delay}.`);
-    this.setIntervalHandler = setInterval(() => {
+    const publishFn = () => {
       this.client.publish(`counter/${qos}/${delay}`, counter.toString(), {
         qos,
       });
       counter++;
-    }, delay);
+    };
+    // Because the minimum gap of setInterval function is 1ms, I have to use a different mechanism.
+    if (delay === 0) {
+      this.stop0ms = false;
+      const loop = () => {
+        publishFn();
+        setImmediate(() => {
+          if (!this.stop0ms) loop();
+        });
+      };
+      loop();
+    } else this.setIntervalHandler = setInterval(publishFn, delay);
   }
 
   public stopPublish() {
     if (!this.setIntervalHandler) return;
     clearInterval(this.setIntervalHandler);
     this.setIntervalHandler = null;
+    if (!this.stop0ms) this.stop0ms = true;
   }
 }
 
