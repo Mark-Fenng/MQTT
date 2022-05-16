@@ -73,7 +73,7 @@ class Analyzer {
             resolve(result);
           }
         } else {
-          if (this.startTime !== null) this.systemLog += `${Date.now() - this.startTime} ${topic} ${message.toString()}\n`;
+          if (this.startTime !== null) this.systemLog += `${Date.now() - this.startTime}, ${topic}, ${message.toString()}\n`;
         }
       };
       await this.client.on("message", onMessageHandler);
@@ -88,8 +88,8 @@ class Analyzer {
   private saveRecordData() {
     const targetDir = path.resolve(__dirname, `../record`);
     if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir);
-    fs.writeFileSync(`${targetDir}/${this.qos}-${this.delay}`, this.record.map((r) => r.join(" ")).join("\n"));
-    fs.writeFileSync(`${targetDir}/${this.qos}-${this.delay}-system-log`, this.systemLog);
+    fs.writeFileSync(`${targetDir}/${this.qos}-${this.delay}.csv`, this.record.map((r) => r.join(", ")).join("\n"));
+    fs.writeFileSync(`${targetDir}/${this.qos}-${this.delay}-system.log`, this.systemLog);
   }
 
   private getStatistics(): AnalysisResult {
