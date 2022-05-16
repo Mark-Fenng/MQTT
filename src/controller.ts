@@ -1,13 +1,8 @@
 import * as mqtt from "async-mqtt";
+import { QoS, QOS_TOPIC, DELAY_TOPIC } from "./type";
 
 // const BROKER_URL = "mqtt://test.mosquitto.org";
 const BROKER_URL = "mqtt://127.0.0.1";
-
-enum QoS {
-  AT_MOST_ONCE,
-  AT_LEAST_ONCE,
-  EXACTLY_ONCE,
-}
 
 async function main() {
   try {
@@ -22,13 +17,11 @@ async function main() {
 }
 
 class Controller {
-  private static QOS_TOPIC = "request/qos";
-  private static DELAY_TOPIC = "request/delay";
-  private static TOPICS = [Controller.QOS_TOPIC, Controller.DELAY_TOPIC];
+  private static TOPICS = [QOS_TOPIC, DELAY_TOPIC];
   private client: mqtt.AsyncMqttClient;
   private publisher: Publisher;
   private qos: QoS = QoS.AT_MOST_ONCE;
-  private delay: number = 200;
+  private delay: number = 1000;
 
   constructor(client: mqtt.AsyncMqttClient) {
     this.client = client;
@@ -46,7 +39,7 @@ class Controller {
   }
 
   private messageHandler(topic: string, message: Buffer) {
-    if (topic === Controller.QOS_TOPIC) {
+    if (topic === QOS_TOPIC) {
       const newQos = Number.parseInt(message.toString());
       if (Number.isNaN(newQos) || newQos < 0 || newQos > 3) {
         console.error(`Invalid QoS value: ${message.toString()} .`);
@@ -55,7 +48,7 @@ class Controller {
       if (newQos === this.qos) return;
       this.qos = newQos;
       this.publisher.startPublish(this.qos, this.delay);
-    } else if (topic === Controller.DELAY_TOPIC) {
+    } else if (topic === DELAY_TOPIC) {
       const newDelay = Number.parseInt(message.toString());
       if (Number.isNaN(newDelay) || newDelay < 0) {
         console.error(`Invalid delay value: ${message.toString()} .`);
