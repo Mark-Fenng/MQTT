@@ -1,14 +1,13 @@
 import * as mqtt from "async-mqtt";
 import * as fs from "fs";
 import * as path from "path";
-import { QoS, QOS_TOPIC, DELAY_TOPIC, BROKER_SYS_TOPIC } from "./type";
+import { QoS, QOS_TOPIC, DELAY_TOPIC, BROKER_SYS_TOPIC, USER_NAME, PASSWORD } from "./type";
 
-// const BROKER_URL = "mqtt://test.mosquitto.org";
 const BROKER_URL = "mqtt://127.0.0.1";
 
 async function main() {
   try {
-    const client = await mqtt.connectAsync(BROKER_URL);
+    const client = await mqtt.connectAsync(BROKER_URL, { username: USER_NAME, password: PASSWORD });
     console.log(`Connected to ${BROKER_URL}.`);
     const analyzer = new Analyzer(client, 2);
     for (const qos of [QoS.AT_MOST_ONCE, QoS.AT_LEAST_ONCE, QoS.EXACTLY_ONCE]) {
