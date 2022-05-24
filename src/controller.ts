@@ -1,7 +1,6 @@
 import * as mqtt from "async-mqtt";
 import { QoS, QOS_TOPIC, DELAY_TOPIC, USER_NAME, PASSWORD } from "./type";
 
-// const BROKER_URL = "mqtt://test.mosquitto.org";
 const BROKER_URL = "mqtt://127.0.0.1";
 
 async function main() {
@@ -45,6 +44,7 @@ class Controller {
         console.error(`Invalid QoS value: ${message.toString()} .`);
         return;
       }
+      // the QoS value doesn't change
       if (newQos === this.qos) return;
       this.qos = newQos;
       this.publisher.startPublish(this.qos, this.delay);
@@ -54,6 +54,7 @@ class Controller {
         console.error(`Invalid delay value: ${message.toString()} .`);
         return;
       }
+      // the delay value doesn't change
       if (newDelay === this.delay) return;
       this.delay = newDelay;
       this.publisher.startPublish(this.qos, this.delay);
